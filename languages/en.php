@@ -11,9 +11,9 @@
  */
 
 $english = array(
-	'searchimproved:category:users' => 'Members',
-	'searchimproved:category:groups' => 'Groups',
-	'searchimproved:category:objects' => 'Content',
+	'searchimproved:category:user' => 'Members',
+	'searchimproved:category:group' => 'Groups',
+	'searchimproved:category:object' => 'Content',
 
 	'searchimproved:noresults' => 'No Results..',
 
