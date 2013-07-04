@@ -86,6 +86,10 @@
 	border-top: 1px dotted #CCC;
 }
 
+/*** LOADING ***/
+.elgg-search input[type="text"].ui-autocomplete-loading {
+	background: #FFF url(<?php echo elgg_get_site_url(); ?>mod/searchimproved/graphics/search_loading.gif) no-repeat 98% center;
+}
 
 /*** ACTIVE/HOVER STATES ***/
 .searchimproved-autocomplete #ui-active-menuitem {

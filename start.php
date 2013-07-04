@@ -39,168 +39,7 @@ function searchimproved_init() {
 
 	// Entity menu hook for search results
 	elgg_register_plugin_hook_handler('register', 'menu:entity', 'searchimproved_entity_menu_handler', 999999);
-
-	//elgg_dump(elgg_get_entity_type_subtype_where_sql('e', array('group', 'object', 'user'), get_registered_entity_types('object')));
 }
-
-/**
- * Page handler for autocomplete search endpoint.
- *
- * Other options include:
- *     match_on	   string all or array(groups|users|entities)
- *     limit       int    default is 10
- *
- * @param array $page
- * @return string JSON string is returned and then exit
- * @access private
- */
-// function searchimproved_page_handler($page) {
-// 	elgg_push_context('searchimproved_results');
-
-// 	$dbprefix = elgg_get_config('dbprefix');
-
-// 	if (!$q = get_input('term', get_input('q'))) {
-// 		exit;
-// 	}
-
-// 	$q = sanitise_string($q);
-
-// 	// replace mysql vars with escaped strings
-// 	$q = str_replace(array('_', '%'), array('\_', '\%'), $q);
-
-// 	$match_on = get_input('match_on', 'all');
-
-// 	if (!is_array($match_on)) {
-// 		$match_on = array($match_on);
-// 	}
-
-// 	// all = users and groups
-// 	if (in_array('all', $match_on)) {
-// 		$match_on = array('users', 'groups', 'objects');
-// 	}
-
-// 	$limit = sanitise_int(get_input('limit', 10));
-
-// 	// grab a list of entities and send them in json.
-// 	$results = array();
-
-// 	foreach ($match_on as $match_type) {
-// 		switch ($match_type) {
-// 			case 'users':
-// 				// User entity options
-// 				$options = array(
-// 					'type' => 'user',
-// 					'joins' => array(
-// 						"JOIN {$dbprefix}users_entity ue on e.guid = ue.guid"
-// 					), 
-// 					'wheres' => array(
-// 						"ue.banned = 'no'",
-// 						"(ue.name LIKE '$q%' OR ue.name LIKE '% $q%' OR ue.username LIKE '$q%')",
-// 					)
-// 				);
-// 				break;
-// 			case 'groups':
-// 				// don't return results if groups aren't enabled.
-// 				if (!elgg_is_active_plugin('groups')) {
-// 					continue;
-// 				}
-// 				// Group entity options
-// 				$options = array(
-// 					'type' => 'group',
-// 					'joins' => array(
-// 						"JOIN {$dbprefix}groups_entity ge on e.guid = ge.guid"
-// 					),
-// 					'wheres' => array(
-// 						"(ge.name LIKE '$q%' OR ge.name LIKE '% $q%' OR ge.description LIKE '% $q%')"
-// 					)
-// 				);
-// 				break;
-// 			case 'objects':
-// 				// General entity options
-// 				// @todo metadata??
-// 				$options = array(
-// 					'type' => 'object',
-// 					'subtypes' => get_registered_entity_types('object'), // Use only registered types
-// 					'joins' => array(
-// 						"JOIN {$dbprefix}objects_entity oe on e.guid = oe.guid"
-// 					),
-// 					'wheres' => array(
-// 						"(oe.title LIKE '$q%' OR oe.title LIKE '% $q%' OR oe.description LIKE '% $q%')"
-// 					)
-// 				);
-// 				break;
-// 			default: 
-// 				// Unknown match type
-// 				header("HTTP/1.0 400 Bad Request", true);
-// 				echo "livesearch: unknown match_on of $match_type";
-// 				exit;
-// 				break;
-// 		}
-
-// 		// General options
-// 		$options['limit'] = $limit;
-
-// 		// Friendly category name
-// 		$category_name = elgg_echo("searchimproved:category:{$match_type}");
-
-// 		// Get entities with matched options
-// 		$entities = elgg_get_entities($options);
-
-// 		// Use simpleicon views for entities (from modules plugin, for now)
-// 		set_input('ajaxmodule_listing_type', 'simpleicon');
-
-// 		// Build json content for entity
-// 		foreach ($entities as $entity) {
-
-// 			$output = elgg_view_list_item($entity, array(
-// 				'use_hover' => false,
-// 				'class' => 'elgg-autocomplete-item',
-// 			));
-
-// 			$icon = elgg_view_entity_icon($entity, 'tiny', array(
-// 				'use_hover' => false,
-// 			));
-
-// 			$result = array(
-// 				'type' => $match_type,
-// 				'guid' => $entity->guid,
-// 				'label' => $output,
-// 				'icon' => $icon,
-// 				'url' => $entity->getURL(),
-// 				'category' => $category_name
-// 			);
-
-// 			$results[$entity->guid] = $result;
-// 		}
-// 	}
-
-// 	$search_more_link = elgg_view('output/url', array(
-// 		'text' => elgg_echo('searchimproved:label:seemore', array($q)),
-// 		'href' => elgg_normalize_url("search?q=$q&search_type=all"),
-// 		'class' => 'searchimproved-more-results'
-// 	));
-
-// 	// Return a no result category if search came up dry
-// 	if (count($results) == 0) {
-// 		$category = elgg_echo('searchimproved:noresults');
-// 	} else {
-// 		// Set category to empty
-// 		$category = 'empty';
-// 	}
-
-// 	$results[-1] = array(
-// 		'name' => 'no_results',
-// 		'label' => $search_more_link,
-// 		'value' => null,
-// 		'category' => $category
-// 	);
-
-// 	header("Content-Type: application/json");
-// 	echo json_encode(array_values($results));
-
-// 	elgg_pop_context();
-// 	exit;
-// }
 
 /**
  * Page handler for autocomplete search endpoint.
@@ -240,17 +79,19 @@ function searchimproved_page_handler($page) {
 
 	$limit = sanitise_int(get_input('limit', 10));
 
-	// grab a list of entities and send them in json.
+	// Arrays to hold match_type sql
 	$types = array();
 	$results = array();
 	$joins = array();
-	$wheres = array();
+	$where_ors = array();
 
+	// Build match type sql
 	foreach ($match_on as $match_type) {
 		switch ($match_type) {
 			case 'users':
 				$types[] = 'user';
-				$joins[] = "JOIN {$dbprefix}users_entity ue on e.guid = ue.guid";
+				$joins[] = "LEFT JOIN {$dbprefix}users_entity ue on e.guid = ue.guid";
+				$where_ors[] = "((e.type = 'user' AND ue.banned = 'no') AND ue.name LIKE '$q%' OR ue.name LIKE '% $q%' OR ue.username LIKE '$q%')";
 				break;
 			case 'groups':
 				// don't return results if groups aren't enabled.
@@ -258,11 +99,14 @@ function searchimproved_page_handler($page) {
 					continue;
 				}
 				$types[] = 'group';
-				$joins[] = "JOIN {$dbprefix}groups_entity ge on e.guid = ge.guid";
+				$joins[] = "LEFT JOIN {$dbprefix}groups_entity ge on e.guid = ge.guid";
+				$where_ors[] = "(e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%' OR ge.description LIKE '% $q%'))";
 				break;
 			case 'objects':
 				$types[] = 'object';
-				$joins[] = "JOIN {$dbprefix}objects_entity oe on e.guid = oe.guid";
+				$joins[] = "LEFT JOIN {$dbprefix}objects_entity oe on e.guid = oe.guid";
+				$subtype_sql = elgg_get_entity_type_subtype_where_sql('e', array('object'), get_registered_entity_types('object'), null);
+				$where_ors[] =  "{$subtype_sql} AND (oe.title LIKE '$q%' OR oe.title LIKE '% $q%' OR oe.description LIKE '% $q%')";
 				break;
 			default: 
 				// Unknown match type
@@ -273,30 +117,29 @@ function searchimproved_page_handler($page) {
 		}
 	}
 
+	// Get config info
+	$site_guid = elgg_get_site_entity()->guid;
 	$suffix = get_access_sql_suffix('e');
 
-	// Giant uber query..
-	$query = <<<SQL
-	SELECT e.* FROM elgg_entities e  
-	LEFT JOIN elgg_users_entity ue on e.guid = ue.guid  
-	LEFT JOIN elgg_groups_entity ge on e.guid = ge.guid  
-	LEFT JOIN elgg_objects_entity oe on e.guid = oe.guid 
-	WHERE 
-	(
-		((e.type = 'user' AND ue.banned = 'no') AND ue.name LIKE '$q%' OR ue.name LIKE '% $q%' OR ue.username LIKE '$q%') 
-		OR (e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%' OR ge.description LIKE '% $q%')) 
-		OR ((e.type = 'object' AND e.subtype IN (20,21,15,1,303,39,5,4,12,13,23,24,25,34,36,19,18,304,313,315)) AND (oe.title LIKE '$q%' OR oe.title LIKE '% $q%' OR oe.description LIKE '% $q%'))
-	) 
-	AND  (e.site_guid IN (1)) 
-	AND ((e.enabled='yes')) 
-	AND $suffix
-	ORDER BY FIELD(e.type, 'user', 'group', 'object'), e.time_created DESC LIMIT 0, 10
-SQL;
+	// Implode joins
+	$joins_sql = implode(' ', $joins);
 
+	// Implode where ors
+	$wheres_sql = implode (' OR ', $where_ors);
+
+	// Implode types field 
+	$types_sql = "'" . implode("', '", $types) . "'";
+
+	// Build Query
+	$query = "SELECT e.* FROM elgg_entities e 
+			 $joins_sql 
+			 WHERE ($wheres_sql) 
+			 AND (e.site_guid IN ($site_guid)) 
+			 AND ((e.enabled='yes')) 
+			 AND $suffix ORDER BY FIELD(e.type, {$types_sql}), e.time_created DESC LIMIT 0, 14";
+
+	// Grab entities
 	$entities = _elgg_fetch_entities_from_sql($query);
-
-	// Friendly category name
-	$category_name = elgg_echo("searchimproved:category:{$match_type}");
 
 	// Use simpleicon views for entities (from modules plugin, for now)
 	set_input('ajaxmodule_listing_type', 'simpleicon');
@@ -325,6 +168,7 @@ SQL;
 		$results[$entity->guid] = $result;
 	}
 
+	// 'More results' link
 	$search_more_link = elgg_view('output/url', array(
 		'text' => elgg_echo('searchimproved:label:seemore', array($q)),
 		'href' => elgg_normalize_url("search?q=$q&search_type=all"),
