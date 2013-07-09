@@ -263,7 +263,7 @@ function searchimproved_generate_user_cache() {
 	}
 
 	// Nothing in cache, or cache is disabled
-	if (!$user_cache) {
+	if (!$users_cache) {
 		$users = elgg_get_entities(array(
 			'type' => 'user',
 			'limit' => 0,

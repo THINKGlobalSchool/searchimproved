@@ -105,7 +105,6 @@ elgg.searchimproved.searchFocus = function(event) {
 		elgg.getJSON(elgg.searchimproved.prefetchEndpoint, {
 			success: function(data) {
 				elgg.searchimproved.prefetchData = data;
-				console.log(elgg.searchimproved.prefetchData);
 				elgg.searchimproved.initSearchInput();
 			}
 		});
