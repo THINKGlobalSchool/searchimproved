@@ -37,9 +37,6 @@ elgg.searchimproved.initSearchInput = function() {
 					if (el.name.toLowerCase().indexOf(req.term) >= 0) {
 						return true;
 					}
-					if (el.username && el.username.toLowerCase().indexOf(req.term) >= 0) {
-						return true;
-					} 
 
 					return false;
 				});
