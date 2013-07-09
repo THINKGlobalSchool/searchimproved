@@ -215,8 +215,9 @@ function searchimproved_prefetch_handler($page) {
 	$results = array();
 	$users = elgg_get_config('users_cache');
 
-	$results = $users;
-
+	//$results = $users;
+	$results['users'] = $users;
+	
 	$groups = elgg_get_entities(array(
 		'type' => 'group',
 		'limit' => 0
@@ -226,7 +227,8 @@ function searchimproved_prefetch_handler($page) {
 
 	elgg_push_context('searchimproved_results');
 	foreach ($groups as $group) {
-		$group_results[] = array(
+		//$group_results[] = array(
+		$results['groups'][] = array(
 			'guid' => $group->guid,
 			'name' => $group->name,
 			'category' => 'group',
@@ -236,7 +238,7 @@ function searchimproved_prefetch_handler($page) {
 	}
 	elgg_pop_context();
 
-	$results = array_merge($results, $group_results);
+//	$results = array_merge($results, $group_results);
 	
 	echo json_encode($results);
 	exit;

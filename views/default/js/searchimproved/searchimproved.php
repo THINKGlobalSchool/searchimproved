@@ -22,7 +22,7 @@ elgg.searchimproved.prefetchEndpoint = elgg.get_site_url() + 'searchprefetch';
 
 // Init
 elgg.searchimproved.init = function() {
-	$('.search-input').live('focus', elgg.searchimproved.searchFocus);
+	//$('.search-input').live('mouseover', elgg.searchimproved.searchFocus);
 }
 
 // Init the search input
@@ -32,16 +32,32 @@ elgg.searchimproved.initSearchInput = function() {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
 			//source: elgg.searchimproved.searchEndpoint + '?limit=' + elgg.searchimproved.searchLimit,
 			source: function(req, resp) {
-				//console.log(req);
-				var result = $.grep(elgg.searchimproved.prefetchData, function(el, idx) {
+				// Sort function
+				var prefetchSort = function(a, b) {
+				 	return a.name.indexOf(req.term) > b.name.indexOf(req.term);
+				}
+
+				// Search on user prefetch data
+				var user_result = $.grep(elgg.searchimproved.prefetchData.users, function(el, idx) {
 					if (el.name.toLowerCase().indexOf(req.term) >= 0) {
 						return true;
 					}
-
 					return false;
 				});
 
-				resp(result);
+				user_result.sort(prefetchSort);
+
+				// Search on group prefetch data
+				var group_result = $.grep(elgg.searchimproved.prefetchData.groups, function(el, idx) {
+					if (el.name.toLowerCase().indexOf(req.term) >= 0) {
+						return true;
+					}
+					return false;
+				});
+
+				group_result.sort(prefetchSort);
+
+				resp(user_result.concat(group_result));
 			},
 			autoFocus: true,
 			delay: 2, // Delay before searching
@@ -103,9 +119,11 @@ elgg.searchimproved.searchFocus = function(event) {
 			success: function(data) {
 				elgg.searchimproved.prefetchData = data;
 				elgg.searchimproved.initSearchInput();
+				console.log(elgg.searchimproved.prefetchData);
 			}
 		});
 	}
 }
 
 elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
+elgg.register_hook_handler('ready', 'system', elgg.searchimproved.searchFocus);
