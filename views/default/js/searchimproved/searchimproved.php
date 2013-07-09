@@ -30,35 +30,7 @@ elgg.searchimproved.initSearchInput = function() {
 	// Init search
 	if (!elgg.searchimproved.searchInput && $('.search-input').length > 0) {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
-			//source: elgg.searchimproved.searchEndpoint + '?limit=' + elgg.searchimproved.searchLimit,
-			source: function(req, resp) {
-				// Sort function
-				var prefetchSort = function(a, b) {
-				 	return a.name.indexOf(req.term) > b.name.indexOf(req.term);
-				}
-
-				// Search on user prefetch data
-				var user_result = $.grep(elgg.searchimproved.prefetchData.users, function(el, idx) {
-					if (el.name.toLowerCase().indexOf(req.term) >= 0) {
-						return true;
-					}
-					return false;
-				});
-
-				user_result.sort(prefetchSort);
-
-				// Search on group prefetch data
-				var group_result = $.grep(elgg.searchimproved.prefetchData.groups, function(el, idx) {
-					if (el.name.toLowerCase().indexOf(req.term) >= 0) {
-						return true;
-					}
-					return false;
-				});
-
-				group_result.sort(prefetchSort);
-
-				resp(user_result.concat(group_result));
-			},
+			source: elgg.searchimproved.searchSource,
 			autoFocus: true,
 			delay: 2, // Delay before searching
 			minLength: 2,
@@ -113,6 +85,89 @@ elgg.searchimproved.initSearchInput = function() {
 	}
 }
 
+elgg.searchimproved.searchSource = function(req, resp) {
+	// Sort function
+	var prefetchSort = function(a, b) {
+		var search = req.term.toLowerCase();
+		var a_lower = a.name.toLowerCase();
+		var b_lower = b.name.toLowerCase();
+
+	 	var a_idx = a.name.toLowerCase().indexOf(search);
+		var b_idx = b.name.toLowerCase().indexOf(search);
+
+		// Compare index of search term
+		if (a_idx > b_idx) {
+			return 1;
+		} else if (a_idx < b_idx) {
+			return -1;
+		} else {
+			// If same index, compare names alphabetically
+			if (a.name.toLowerCase() < b.name.toLowerCase()) {
+				return -1;
+			} else if (a.name.toLowerCase() > b.name.toLowerCase()) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
+	}
+
+	// Search on user prefetch data
+	var user_result = $.grep(elgg.searchimproved.prefetchData.users, function(el, idx) {
+		if (el.name.toLowerCase().indexOf(req.term) >= 0) {
+			return true;
+		}
+		return false;
+	});
+
+	// Sort elements
+	user_result.sort(prefetchSort);
+
+	// Splice the array down
+	user_result.splice(5, user_result.length +1);
+
+	// Search on group prefetch data
+	var group_result = $.grep(elgg.searchimproved.prefetchData.groups, function(el, idx) {
+		if (el.name.toLowerCase().indexOf(req.term) >= 0) {
+			return true;
+		}
+		return false;
+	});
+
+	// Sort group elements
+	group_result.sort(prefetchSort);
+
+	// Splice the array down
+	group_result.splice(5, group_result.length +1);
+
+	// Create a search more link
+	var $search_more = $(document.createElement('a'));
+	$search_more.addClass('searchimproved-more-results');
+	$search_more.html(elgg.echo('searchimproved:label:seemore',[req.term]));
+	//$search_more.attr('href', elgg.get_site_url() + "search?q=" + req.term + "&search_type=all");
+ 	
+ 	// Merge group/user result sets
+ 	var results = user_result.concat(group_result);
+
+ 	// Empty category
+ 	var category = 'empty';
+
+ 	if (results.length === 0) {
+ 		category = elgg.echo('searchimproved:noresults');
+ 	}
+
+	var source_items = [{
+		'name': 'No Results',
+		'label': $search_more,
+		'category': category,
+		'url': elgg.get_site_url() + "search?q=" + req.term + "&search_type=all",
+		'value': null,
+	}]
+
+	// Add extra source items
+	resp(results.concat(source_items));
+}
+
 elgg.searchimproved.searchFocus = function(event) {
 	if (!elgg.searchimproved.prefetchData) {
 		elgg.getJSON(elgg.searchimproved.prefetchEndpoint, {
@@ -126,4 +181,4 @@ elgg.searchimproved.searchFocus = function(event) {
 }
 
 elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
-elgg.register_hook_handler('ready', 'system', elgg.searchimproved.searchFocus);
+elgg.register_hook_handler('init', 'system', elgg.searchimproved.searchFocus);

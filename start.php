@@ -175,28 +175,6 @@ function searchimproved_page_handler($page) {
 		$results[$entity->guid] = $result;
 	}
 
-	// 'More results' link
-	$search_more_link = elgg_view('output/url', array(
-		'text' => elgg_echo('searchimproved:label:seemore', array($q)),
-		'href' => elgg_normalize_url("search?q=$q&search_type=all"),
-		'class' => 'searchimproved-more-results'
-	));
-
-	// Return a no result category if search came up dry
-	if (count($results) == 0) {
-		$category = elgg_echo('searchimproved:noresults');
-	} else {
-		// Set category to empty
-		$category = 'empty';
-	}
-
-	$results[-1] = array(
-		'name' => 'no_results',
-		'label' => $search_more_link,
-		'value' => null,
-		'category' => $category
-	);
-
 	header("Content-Type: application/json");
 	echo json_encode(array_values($results));
 
@@ -215,7 +193,6 @@ function searchimproved_prefetch_handler($page) {
 	$results = array();
 	$users = elgg_get_config('users_cache');
 
-	//$results = $users;
 	$results['users'] = $users;
 	
 	$groups = elgg_get_entities(array(
@@ -227,7 +204,6 @@ function searchimproved_prefetch_handler($page) {
 
 	elgg_push_context('searchimproved_results');
 	foreach ($groups as $group) {
-		//$group_results[] = array(
 		$results['groups'][] = array(
 			'guid' => $group->guid,
 			'name' => $group->name,
@@ -237,8 +213,6 @@ function searchimproved_prefetch_handler($page) {
 		);
 	}
 	elgg_pop_context();
-
-//	$results = array_merge($results, $group_results);
 	
 	echo json_encode($results);
 	exit;
