@@ -299,8 +299,6 @@ function searchimproved_generate_user_cache() {
 	// Set config variable
 	elgg_set_config('users_cache', $users_cache);
 
-	elgg_dump(elgg_get_config('users_cache'));
-
 	return TRUE;
 }
 
