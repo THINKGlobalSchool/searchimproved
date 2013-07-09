@@ -90,8 +90,12 @@ function searchimproved_page_handler($page) {
 		switch ($match_type) {
 			case 'users':
 				$types[] = 'user';
+				// Don't search for last name unless user is logged in
+				if (elgg_is_logged_in()) {
+					$logged_in_search = "OR ue.name LIKE '% $q%'";
+				}
 				$joins[] = "LEFT JOIN {$dbprefix}users_entity ue on e.guid = ue.guid";
-				$where_ors[] = "((e.type = 'user' AND ue.banned = 'no') AND ue.name LIKE '$q%' OR ue.name LIKE '% $q%' OR ue.username LIKE '$q%')";
+				$where_ors[] = "((e.type = 'user' AND ue.banned = 'no') AND ue.name LIKE '$q%' $logged_in_search OR ue.username LIKE '$q%')";
 				break;
 			case 'groups':
 				// don't return results if groups aren't enabled.
@@ -100,7 +104,8 @@ function searchimproved_page_handler($page) {
 				}
 				$types[] = 'group';
 				$joins[] = "LEFT JOIN {$dbprefix}groups_entity ge on e.guid = ge.guid";
-				$where_ors[] = "(e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%' OR ge.description LIKE '% $q%'))";
+				//$where_ors[] = "(e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%' OR ge.description LIKE '% $q%'))";
+				$where_ors[] = "(e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%'))";
 				break;
 			case 'objects':
 				$types[] = 'object';
