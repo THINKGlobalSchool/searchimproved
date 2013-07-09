@@ -282,7 +282,7 @@ function searchimproved_generate_user_cache() {
 			$users_cache[] = array(
 				'guid' => $user->guid,
 				'name' => $user->name,
-				'username' => $user->username,
+				//'username' => $user->username,
 				'url' => $user->getURL(),
 				'category' => 'user',
 				'label' => elgg_view_list_item($user, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
