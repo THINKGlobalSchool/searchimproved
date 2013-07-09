@@ -15,12 +15,14 @@
 elgg.provide('elgg.searchimproved');
 
 elgg.searchimproved.searchInput = false;
-
-elgg.searchimproved.searchLimit = 4;
+elgg.searchimproved.prefetchData = null;
+elgg.searchimproved.searchLimit = 5;
+elgg.searchimproved.searchEndpoint = elgg.get_site_url() + 'searchimproved';
+elgg.searchimproved.prefetchEndpoint = elgg.get_site_url() + 'searchprefetch';
 
 // Init
 elgg.searchimproved.init = function() {
-	elgg.searchimproved.initSearchInput();
+	$('.search-input').live('focus', elgg.searchimproved.searchFocus);
 }
 
 // Init the search input
@@ -28,7 +30,22 @@ elgg.searchimproved.initSearchInput = function() {
 	// Init search
 	if (!elgg.searchimproved.searchInput && $('.search-input').length > 0) {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
-			source: elgg.get_site_url() + 'searchimproved?limit=' + elgg.searchimproved.searchLimit,
+			//source: elgg.searchimproved.searchEndpoint + '?limit=' + elgg.searchimproved.searchLimit,
+			source: function(req, resp) {
+				//console.log(req);
+				var result = $.grep(elgg.searchimproved.prefetchData, function(el, idx) {
+					if (el.name.toLowerCase().indexOf(req.term) >= 0) {
+						return true;
+					}
+					if (el.username && el.username.toLowerCase().indexOf(req.term) >= 0) {
+						return true;
+					} 
+
+					return false;
+				});
+
+				resp(result);
+			},
 			autoFocus: true,
 			delay: 2, // Delay before searching
 			minLength: 2,
@@ -80,6 +97,18 @@ elgg.searchimproved.initSearchInput = function() {
 				that._renderItem(ul, item);
 			});
 		};
+	}
+}
+
+elgg.searchimproved.searchFocus = function(event) {
+	if (!elgg.searchimproved.prefetchData) {
+		elgg.getJSON(elgg.searchimproved.prefetchEndpoint, {
+			success: function(data) {
+				elgg.searchimproved.prefetchData = data;
+				console.log(elgg.searchimproved.prefetchData);
+				elgg.searchimproved.initSearchInput();
+			}
+		});
 	}
 }
 

@@ -11,6 +11,7 @@
  */
 
 elgg_register_event_handler('init', 'system', 'searchimproved_init');
+elgg_register_event_handler('ready', 'system', 'searchimproved_generate_user_cache');
 
 // Init wall posts
 function searchimproved_init() {
@@ -36,6 +37,9 @@ function searchimproved_init() {
 
 	// Register custom search page handler
 	elgg_register_page_handler('searchimproved', 'searchimproved_page_handler');
+
+	// Register user/group prefetch handler
+	elgg_register_page_handler('searchprefetch', 'searchimproved_prefetch_handler');
 
 	// Entity menu hook for search results
 	elgg_register_plugin_hook_handler('register', 'menu:entity', 'searchimproved_entity_menu_handler', 999999);
@@ -85,33 +89,61 @@ function searchimproved_page_handler($page) {
 	$joins = array();
 	$where_ors = array();
 
+	$entities = array();
+
 	// Build match type sql
 	foreach ($match_on as $match_type) {
 		switch ($match_type) {
 			case 'users':
-				$types[] = 'user';
-				// Don't search for last name unless user is logged in
-				if (elgg_is_logged_in()) {
-					$logged_in_search = "OR ue.name LIKE '% $q%'";
-				}
-				$joins[] = "LEFT JOIN {$dbprefix}users_entity ue on e.guid = ue.guid";
-				$where_ors[] = "((e.type = 'user' AND ue.banned = 'no') AND ue.name LIKE '$q%' $logged_in_search OR ue.username LIKE '$q%')";
+				$user_options = array(
+					'type' => 'user',
+					'joins' => array(
+						"JOIN {$dbprefix}users_entity ue on e.guid = ue.guid"
+					),
+					'wheres' => array(
+						"(ue.banned = 'no'AND (ue.name LIKE '$q%' $logged_in_search OR ue.username LIKE '$q%'))"
+					),
+					'limit' => $limit
+				);
+
+				$users = elgg_get_entities($user_options);
+				$entities = array_merge($entities, $users);
 				break;
 			case 'groups':
 				// don't return results if groups aren't enabled.
 				if (!elgg_is_active_plugin('groups')) {
 					continue;
 				}
-				$types[] = 'group';
-				$joins[] = "LEFT JOIN {$dbprefix}groups_entity ge on e.guid = ge.guid";
-				//$where_ors[] = "(e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%' OR ge.description LIKE '% $q%'))";
-				$where_ors[] = "(e.type = 'group' AND (ge.name LIKE '$q%' OR ge.name LIKE '% $q%'))";
+
+				$group_options = array(
+					'type' => 'group',
+					'joins' => array(
+						"JOIN {$dbprefix}groups_entity ge on e.guid = ge.guid"
+					),
+					'wheres' => array(
+						"(ge.name LIKE '$q%' OR ge.name LIKE '% $q%')"
+					),
+					'limit' => $limit
+				);
+
+				$groups = elgg_get_entities($group_options);
+				$entities = array_merge($entities, $groups);
 				break;
 			case 'objects':
-				$types[] = 'object';
-				$joins[] = "LEFT JOIN {$dbprefix}objects_entity oe on e.guid = oe.guid";
-				$subtype_sql = elgg_get_entity_type_subtype_where_sql('e', array('object'), get_registered_entity_types('object'), null);
-				$where_ors[] =  "{$subtype_sql} AND (oe.title LIKE '$q%' OR oe.title LIKE '% $q%' OR oe.description LIKE '% $q%')";
+				$object_options = array(
+					'type' => 'object',
+					'subtypes' => get_registered_entity_types('object'),
+					'joins' => array(
+						"JOIN {$dbprefix}objects_entity oe on e.guid = oe.guid"
+					),
+					'wheres' => array(
+						"(oe.title LIKE '$q%' OR oe.title LIKE '% $q%' OR oe.description LIKE '% $q%')"
+					),
+					'limit' => $limit
+				);
+
+				$objects = elgg_get_entities($object_options);
+				$entities = array_merge($entities, $objects);
 				break;
 			default: 
 				// Unknown match type
@@ -121,30 +153,6 @@ function searchimproved_page_handler($page) {
 				break;
 		}
 	}
-
-	// Get config info
-	$site_guid = elgg_get_site_entity()->guid;
-	$suffix = get_access_sql_suffix('e');
-
-	// Implode joins
-	$joins_sql = implode(' ', $joins);
-
-	// Implode where ors
-	$wheres_sql = implode (' OR ', $where_ors);
-
-	// Implode types field 
-	$types_sql = "'" . implode("', '", $types) . "'";
-
-	// Build Query
-	$query = "SELECT e.* FROM elgg_entities e 
-			 $joins_sql 
-			 WHERE ($wheres_sql) 
-			 AND (e.site_guid IN ($site_guid)) 
-			 AND ((e.enabled='yes')) 
-			 AND $suffix ORDER BY FIELD(e.type, {$types_sql}), e.time_created DESC LIMIT 0, 14";
-
-	// Grab entities
-	$entities = _elgg_fetch_entities_from_sql($query);
 
 	// Use simpleicon views for entities (from modules plugin, for now)
 	set_input('ajaxmodule_listing_type', 'simpleicon');
@@ -157,15 +165,9 @@ function searchimproved_page_handler($page) {
 			'class' => 'elgg-autocomplete-item',
 		));
 
-		$icon = elgg_view_entity_icon($entity, 'tiny', array(
-			'use_hover' => false,
-		));
-
 		$result = array(
-			'type' => $match_type,
 			'guid' => $entity->guid,
 			'label' => $output,
-			'icon' => $icon,
 			'url' => $entity->getURL(),
 			'category' => elgg_echo('searchimproved:category:' . $entity->getType())
 		);
@@ -203,11 +205,102 @@ function searchimproved_page_handler($page) {
 }
 
 /**
+ * Page handler for search prefetch. Grabs all users and accessible groups
+ *
+ * @param array $page
+ * @return string JSON string is returned and then exit
+ * @access private
+ */
+function searchimproved_prefetch_handler($page) {
+	$results = array();
+	$users = elgg_get_config('users_cache');
+
+	$results = $users;
+
+	$groups = elgg_get_entities(array(
+		'type' => 'group',
+		'limit' => 0
+	));
+
+	$group_results = array();
+
+	elgg_push_context('searchimproved_results');
+	foreach ($groups as $group) {
+		$group_results[] = array(
+			'guid' => $group->guid,
+			'name' => $group->name,
+			'category' => 'group',
+			'url' => $group->getURL(),
+			'label' => elgg_view_list_item($group, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
+		);
+	}
+	elgg_pop_context();
+
+	$results = array_merge($results, $group_results);
+	
+	echo json_encode($results);
+	exit;
+}
+
+/**
  * Remove items entity menus in search results
  */ 
 function searchimproved_entity_menu_handler($hook, $type, $return, $params) {
 	if (elgg_in_context('searchimproved_results')) {
 		return array();
 	}
+}
+
+/**
+ * Save system wide user cache
+ */
+function searchimproved_generate_user_cache() {
+	global $CONFIG;
+	
+	// Try to load users from the cache
+	if ($CONFIG->system_cache_enabled) {
+		$users_cache = unserialize(elgg_load_system_cache('users_cache'));
+	}
+
+	// Nothing in cache, or cache is disabled
+	if (!$user_cache) {
+		$users = elgg_get_entities(array(
+			'type' => 'user',
+			'limit' => 0,
+			'joins' => array(
+				"JOIN {$CONFIG->dbprefix}users_entity ue on e.guid = ue.guid"
+			),
+			'wheres' => array(
+				"(ue.banned = 'no')"
+			)
+		));
+
+		$users_cache = array();
+
+		elgg_push_context('searchimproved_results');
+		foreach ($users as $user) {
+			$users_cache[] = array(
+				'guid' => $user->guid,
+				'name' => $user->name,
+				'username' => $user->username,
+				'url' => $user->getURL(),
+				'category' => 'user',
+				'label' => elgg_view_list_item($user, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
+			);
+		}
+		elgg_pop_context();
+		
+		// Save to cache, if enabled
+		if ($CONFIG->system_cache_enabled) {
+			elgg_save_system_cache('users_cache', serialize($users_cache));
+		}
+	}
+
+	// Set config variable
+	elgg_set_config('users_cache', $users_cache);
+
+	elgg_dump(elgg_get_config('users_cache'));
+
+	return TRUE;
 }
 
