@@ -11,5 +11,5 @@
  */
 ?>
 <script type='text/javascript'>
-	elgg.searchimproved.initSearchInput();
+	//elgg.searchimproved.initSearchInput();
 </script>
