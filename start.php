@@ -48,6 +48,9 @@ function searchimproved_init() {
 	elgg_register_event_handler('create', 'user', 'searchimproved_user_change_event');
 	elgg_register_event_handler('delete', 'user', 'searchimproved_user_change_event');
 	elgg_register_event_handler('update', 'all', 'searchimproved_user_change_event');
+	elgg_register_event_handler('profileiconupdate', 'user', 'searchimproved_user_change_event');
+
+	elgg_register_plugin_hook_handler('action', 'all', 'searchimproved_user_change_hook_handler');
 }
 
 /**
@@ -226,10 +229,33 @@ function searchimproved_prefetch_handler($page) {
 /**
  * Remove items entity menus in search results
  */ 
-function searchimproved_entity_menu_handler($hook, $type, $return, $params) {
+function searchimproved_entity_menu_handler($hook, $type, $value, $params) {
 	if (elgg_in_context('searchimproved_results')) {
 		return array();
+	} else {
+		return $value;
 	}
+}
+
+
+/**
+ * Delete the user cache on user related hooks
+ */ 
+function searchimproved_user_change_hook_handler($hook, $type, $value, $params) {
+	// Valid user actions
+	$valid_actions = array(
+		'avatar/crop',
+		'avatar/remove'
+	);
+
+	if (in_array($type, $valid_actions)) {
+
+		// Delete the users cache
+		$cache = elgg_get_system_cache();
+		$cache->delete('users_cache');
+	}
+
+	return $value;
 }
 
 /**
@@ -284,7 +310,7 @@ function searchimproved_generate_user_cache() {
 }
 
 /**
- * Regenerate the user cache on user events
+ * Delete the user cache on user events
  *
  * @param string   $event       create/delete
  * @param string   $object_type user
@@ -293,8 +319,8 @@ function searchimproved_generate_user_cache() {
  * @return void
  */
 function searchimproved_user_change_event($event, $object_type, $object) {
-	// If we're dealing with a user
-	if (elgg_instanceof($object, 'user')) {
+	// If we're dealing with a user object, or user actions
+	if (elgg_instanceof($object, 'user') || in_array($object_type, $valid_actions)) {
 		// Delete the users cache
 		$cache = elgg_get_system_cache();
 		$cache->delete('users_cache');

@@ -32,21 +32,10 @@ elgg.searchimproved.initSearchInput = function() {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
 			source: elgg.searchimproved.searchSource,
 			autoFocus: true,
-			delay: 2, // Delay before searching
+			delay: 300, // Delay before searching
 			minLength: 2,
 			html: "html",
-			//appendTo: '.elgg-menu-item-search',
 			position: { my: "right top", at: "right bottom", of: '.search-input', collision: "none", offset: "18px" },
-			open: function (event, ui) {
-				//
-			},
-			close : function (event, ui) {
-				/** DEBUG, KEEP OPEN! **/
-				// val = $(".search-input").val();
-				// $(".search-input").autocomplete( "search", val );
-				// return false;
-				/** END DEBUG **/
-			}, 
 			focus: function( event, ui) {
 				// Do nothing on item focus
 				return false;
@@ -81,10 +70,78 @@ elgg.searchimproved.initSearchInput = function() {
 
 				that._renderItem(ul, item);
 			});
+
+			// Remove additional items
+			$('.searchimproved-more-results').closest('li.ui-menu-item').remove();
+		
+			var more_item = elgg.searchimproved.getEmptyItem($('.search-input').val());
+
+			// Render additional item
+			this._renderItem(ul, more_item);
+
 		};
+
+		// Override _suggest to request additional item
+		si._suggest = function( items ) {
+			var ul = this.menu.element
+				.empty()
+				.zIndex( this.element.zIndex() + 1 );
+			this._renderMenu( ul, items );
+
+			var that = this;
+
+			// Get our search term
+			var term = $('.search-input').val();
+
+			// Remove any 'search more' items
+			$('.searchimproved-more-results').remove();
+
+			// Add ajax loader
+			$('.searchimproved-autocomplete').append("<li class='elgg-ajax-loader' style='height: 50px;'></li>");
+
+			// Use search enpoint to retrieve objects
+			elgg.getJSON(elgg.searchimproved.searchEndpoint, {
+				data: {
+					term: term,
+					limit: elgg.searchimproved.searchLimit,
+					match_on: 'objects'
+				},
+				success: function(data) {
+					// Remove ajax loader
+					$('.searchimproved-autocomplete > .elgg-ajax-loader').remove();
+
+					// Add items and refresh menu
+					that._renderMenu( ul, data);
+					that.menu.deactivate();
+					that.menu.refresh();
+					that._resizeMenu();
+					ul.position( $.extend({
+						of: that.element
+					}, that.options.position ));
+				}
+			});
+
+			// TODO refresh should check if the active item is still in the dom, removing the need for a manual deactivate
+			this.menu.deactivate();
+			this.menu.refresh();
+
+			// size and position menu
+			ul.show();
+			this._resizeMenu();
+			ul.position( $.extend({
+				of: this.element
+			}, this.options.position ));
+
+			if ( this.options.autoFocus ) {
+				this.menu.next( new $.Event("mouseover") );
+			}
+		}
 	}
 }
 
+/**	
+ * Search/autocomplete source
+ */
 elgg.searchimproved.searchSource = function(req, resp) {
 	// Sort function
 	var prefetchSort = function(a, b) {
@@ -124,7 +181,7 @@ elgg.searchimproved.searchSource = function(req, resp) {
 	user_result.sort(prefetchSort);
 
 	// Splice the array down
-	user_result.splice(5, user_result.length +1);
+	user_result.splice(elgg.searchimproved.searchLimit, user_result.length +1);
 
 	// Search on group prefetch data
 	var group_result = $.grep(elgg.searchimproved.prefetchData.groups, function(el, idx) {
@@ -138,34 +195,17 @@ elgg.searchimproved.searchSource = function(req, resp) {
 	group_result.sort(prefetchSort);
 
 	// Splice the array down
-	group_result.splice(5, group_result.length +1);
-
-	// Create a search more link
-	var $search_more = $(document.createElement('a'));
-	$search_more.addClass('searchimproved-more-results');
-	$search_more.html(elgg.echo('searchimproved:label:seemore',[req.term]));
-	//$search_more.attr('href', elgg.get_site_url() + "search?q=" + req.term + "&search_type=all");
+	group_result.splice(elgg.searchimproved.searchLimit, group_result.length +1);
  	
  	// Merge group/user result sets
  	var results = user_result.concat(group_result);
 
- 	// Empty category
- 	var category = 'empty';
-
  	if (results.length === 0) {
- 		category = elgg.echo('searchimproved:noresults');
- 	}
-
-	var source_items = [{
-		'name': 'No Results',
-		'label': $search_more,
-		'category': category,
-		'url': elgg.get_site_url() + "search?q=" + req.term + "&search_type=all",
-		'value': null,
-	}]
+ 		results.push({'category':'empty'});
+ 	} 
 
 	// Add extra source items
-	resp(results.concat(source_items));
+	resp(results);
 }
 
 elgg.searchimproved.searchFocus = function(event) {
@@ -178,6 +218,30 @@ elgg.searchimproved.searchFocus = function(event) {
 			}
 		});
 	}
+}
+
+/**
+ * Build an empty 'search more' item
+ *
+ * @param string term
+ * @return object
+ */
+elgg.searchimproved.getEmptyItem = function(term) {
+	// Create a search more link
+	var $search_more = $(document.createElement('a'));
+	$search_more.addClass('searchimproved-more-results');
+	$search_more.html(elgg.echo('searchimproved:label:seemore',[term]));
+
+	// Build additional item
+	var more_item = {
+		'name': elgg.echo('searchimproved:noresults'),
+		'label': $search_more,
+		'category': 'empty',
+		'url': elgg.get_site_url() + "search?q=" + term + "&search_type=all",
+		'value': null,
+	};
+
+	return more_item;
 }
 
 elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
