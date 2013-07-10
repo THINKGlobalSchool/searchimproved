@@ -43,6 +43,11 @@ function searchimproved_init() {
 
 	// Entity menu hook for search results
 	elgg_register_plugin_hook_handler('register', 'menu:entity', 'searchimproved_entity_menu_handler', 999999);
+
+	/** USER CACHE HANDLERS **/
+	elgg_register_event_handler('create', 'user', 'searchimproved_user_change_event');
+	elgg_register_event_handler('delete', 'user', 'searchimproved_user_change_event');
+	elgg_register_event_handler('update', 'all', 'searchimproved_user_change_event');
 }
 
 /**
@@ -278,3 +283,20 @@ function searchimproved_generate_user_cache() {
 	return TRUE;
 }
 
+/**
+ * Regenerate the user cache on user events
+ *
+ * @param string   $event       create/delete
+ * @param string   $object_type user
+ * @param ElggUser $object      User object
+ *
+ * @return void
+ */
+function searchimproved_user_change_event($event, $object_type, $object) {
+	// If we're dealing with a user
+	if (elgg_instanceof($object, 'user')) {
+		// Delete the users cache
+		$cache = elgg_get_system_cache();
+		$cache->delete('users_cache');
+	}
+}
