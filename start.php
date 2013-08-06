@@ -203,10 +203,14 @@ function searchimproved_prefetch_handler($page) {
 
 	$results['users'] = $users;
 	
-	$groups = elgg_get_entities(array(
+	$group_options = array(
 		'type' => 'group',
 		'limit' => 0
-	));
+	);
+
+	$group_options = elgg_trigger_plugin_hook('searchimproved_results', 'groups', null, $group_options);
+
+	$groups = elgg_get_entities($group_options);
 
 	$group_results = array();
 
