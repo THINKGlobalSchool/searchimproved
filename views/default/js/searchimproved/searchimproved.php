@@ -14,6 +14,7 @@
 //<script>
 elgg.provide('elgg.searchimproved');
 
+elgg.searchimproved.contentSearchActive = false;
 elgg.searchimproved.searchInput = false;
 elgg.searchimproved.prefetchData = null;
 elgg.searchimproved.searchLimit = 5;
@@ -32,7 +33,7 @@ elgg.searchimproved.initSearchInput = function() {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
 			source: elgg.searchimproved.searchSource,
 			autoFocus: true,
-			delay: 300, // Delay before searching
+			delay: 450, // Delay before searching
 			minLength: 2,
 			html: "html",
 			position: { my: "right top", at: "right bottom", of: '.search-input', collision: "none", offset: "18px" },
@@ -99,27 +100,34 @@ elgg.searchimproved.initSearchInput = function() {
 			// Add ajax loader
 			$('.searchimproved-autocomplete').append("<li class='elgg-ajax-loader' style='height: 50px;'></li>");
 
-			// Use search enpoint to retrieve objects
-			elgg.getJSON(elgg.searchimproved.searchEndpoint, {
-				data: {
-					term: term,
-					limit: elgg.searchimproved.searchLimit,
-					match_on: 'objects'
-				},
-				success: function(data) {
-					// Remove ajax loader
-					$('.searchimproved-autocomplete > .elgg-ajax-loader').remove();
+			if (elgg.searchimproved.contentSearchActive == false) {
+				// Set contentSearchActive to true to prevent dupes
+				elgg.searchimproved.contentSearchActive = true;
 
-					// Add items and refresh menu
-					that._renderMenu( ul, data);
-					that.menu.deactivate();
-					that.menu.refresh();
-					that._resizeMenu();
-					ul.position( $.extend({
-						of: that.element
-					}, that.options.position ));
-				}
-			});
+				// Use search endpoint to retrieve objects/content
+				elgg.getJSON(elgg.searchimproved.searchEndpoint, {
+					data: {
+						term: term,
+						limit: elgg.searchimproved.searchLimit,
+						match_on: 'objects'
+					},
+					success: function(data) {
+						// Remove ajax loader
+						$('.searchimproved-autocomplete > .elgg-ajax-loader').remove();
+
+						// Add items and refresh menu
+						that._renderMenu( ul, data);
+						that.menu.deactivate();
+						that.menu.refresh();
+						that._resizeMenu();
+						ul.position( $.extend({
+							of: that.element
+						}, that.options.position ));
+
+						elgg.searchimproved.contentSearchActive = false;
+					}
+				});
+			}
 
 			// TODO refresh should check if the active item is still in the dom, removing the need for a manual deactivate
 			this.menu.deactivate();

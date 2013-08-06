@@ -320,7 +320,7 @@ function searchimproved_generate_user_cache() {
  */
 function searchimproved_user_change_event($event, $object_type, $object) {
 	// If we're dealing with a user object, or user actions
-	if (elgg_instanceof($object, 'user') || in_array($object_type, $valid_actions)) {
+	if (elgg_instanceof($object, 'user')) {
 		// Delete the users cache
 		$cache = elgg_get_system_cache();
 		$cache->delete('users_cache');
