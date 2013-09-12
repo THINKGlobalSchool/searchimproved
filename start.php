@@ -318,8 +318,6 @@ function searchimproved_generate_group_cache() {
 
 		$groups = elgg_get_entities($group_options);
 
-		error_log(count($groups));
-
 		$groups_cache = array();
 		elgg_push_context('searchimproved_results');
 		foreach ($groups as $group) {
