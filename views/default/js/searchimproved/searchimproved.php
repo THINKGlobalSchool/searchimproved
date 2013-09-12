@@ -252,5 +252,5 @@ elgg.searchimproved.getEmptyItem = function(term) {
 	return more_item;
 }
 
-elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
-elgg.register_hook_handler('init', 'system', elgg.searchimproved.searchFocus);
+//elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
+elgg.register_hook_handler('loaded', 'topbar_ajax', elgg.searchimproved.searchFocus, 1000);

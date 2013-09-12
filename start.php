@@ -12,6 +12,7 @@
 
 elgg_register_event_handler('init', 'system', 'searchimproved_init');
 elgg_register_event_handler('ready', 'system', 'searchimproved_generate_user_cache');
+elgg_register_event_handler('ready', 'system', 'searchimproved_generate_group_cache');
 
 // Init wall posts
 function searchimproved_init() {
@@ -47,8 +48,13 @@ function searchimproved_init() {
 	/** USER CACHE HANDLERS **/
 	elgg_register_event_handler('create', 'user', 'searchimproved_user_change_event');
 	elgg_register_event_handler('delete', 'user', 'searchimproved_user_change_event');
-	elgg_register_event_handler('update', 'all', 'searchimproved_user_change_event');
+	elgg_register_event_handler('update', 'user', 'searchimproved_user_change_event');
 	elgg_register_event_handler('profileiconupdate', 'user', 'searchimproved_user_change_event');
+
+	/** GROUP CACHE HANDLERS **/
+	elgg_register_event_handler('create', 'group', 'searchimproved_group_change_event');
+	elgg_register_event_handler('delete', 'group', 'searchimproved_group_change_event');
+	elgg_register_event_handler('update', 'group', 'searchimproved_group_change_event');
 
 	elgg_register_plugin_hook_handler('action', 'all', 'searchimproved_user_change_hook_handler');
 }
@@ -200,31 +206,10 @@ function searchimproved_page_handler($page) {
 function searchimproved_prefetch_handler($page) {
 	$results = array();
 	$users = elgg_get_config('users_cache');
+	$groups = elgg_get_config('groups_cache');
 
 	$results['users'] = $users;
-	
-	$group_options = array(
-		'type' => 'group',
-		'limit' => 0
-	);
-
-	$group_options = elgg_trigger_plugin_hook('searchimproved_results', 'groups', null, $group_options);
-
-	$groups = elgg_get_entities($group_options);
-
-	$group_results = array();
-
-	elgg_push_context('searchimproved_results');
-	foreach ($groups as $group) {
-		$results['groups'][] = array(
-			'guid' => $group->guid,
-			'name' => $group->name,
-			'category' => 'group',
-			'url' => $group->getURL(),
-			'label' => elgg_view_list_item($group, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
-		);
-	}
-	elgg_pop_context();
+	$results['groups'] = $groups;
 	
 	echo json_encode($results);
 	exit;
@@ -278,9 +263,7 @@ function searchimproved_generate_user_cache() {
 		$users = elgg_get_entities(array(
 			'type' => 'user',
 			'limit' => 0,
-			'joins' => array(
-				"JOIN {$CONFIG->dbprefix}users_entity ue on e.guid = ue.guid"
-			),
+			'joins' => array("JOIN {$CONFIG->dbprefix}users_entity ue on e.guid = ue.guid"),
 			'wheres' => array(
 				"(ue.banned = 'no')"
 			)
@@ -314,6 +297,55 @@ function searchimproved_generate_user_cache() {
 }
 
 /**
+ * Save system wide group cache
+ */
+function searchimproved_generate_group_cache() {
+	global $CONFIG;
+
+	// Try to load groups from the cache
+	if ($CONFIG->system_cache_enabled) {
+		$groups_cache = unserialize(elgg_load_system_cache('groups_cache'));
+	}
+
+	// Nothing in cache, or cache is disabled
+	if (!$groups_cache) {
+		$group_options = array(
+			'type' => 'group',
+			'limit' => 0,
+		);
+
+		$group_options = elgg_trigger_plugin_hook('searchimproved_results', 'groups', null, $group_options);
+
+		$groups = elgg_get_entities($group_options);
+
+		error_log(count($groups));
+
+		$groups_cache = array();
+		elgg_push_context('searchimproved_results');
+		foreach ($groups as $group) {
+			$groups_cache[] = array(
+				'guid' => $group->guid,
+				'name' => $group->name,
+				'category' => 'group',
+				'url' => $group->getURL(),
+				'label' => elgg_view_list_item($group, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
+			);
+		}
+		elgg_pop_context();
+		
+		// Save to cache, if enabled
+		if ($CONFIG->system_cache_enabled) {
+			elgg_save_system_cache('groups_cache', serialize($groups_cache));
+		}
+	}
+
+	// Set config variable
+	elgg_set_config('groups_cache', $groups_cache);
+
+	return TRUE;
+}
+
+/**
  * Delete the user cache on user events
  *
  * @param string   $event       create/delete
@@ -328,5 +360,23 @@ function searchimproved_user_change_event($event, $object_type, $object) {
 		// Delete the users cache
 		$cache = elgg_get_system_cache();
 		$cache->delete('users_cache');
+	}
+}
+
+/**
+ * Delete the group cache on user events
+ *
+ * @param string   $event       create/delete
+ * @param string   $object_type user
+ * @param ElggUser $object      User object
+ *
+ * @return void
+ */
+function searchimproved_group_change_event($event, $object_type, $object) {
+	// If we're dealing with a user object, or user actions
+	if (elgg_instanceof($object, 'group')) {
+		// Delete the users cache
+		$cache = elgg_get_system_cache();
+		$cache->delete('groups_cache');
 	}
 }
