@@ -45,6 +45,10 @@ function searchimproved_init() {
 
 	elgg_register_plugin_hook_handler('cron', 'hourly', 'searchimproved_generate_user_cache');
 	elgg_register_plugin_hook_handler('cron', 'hourly', 'searchimproved_generate_group_cache');
+
+	// Set config variable for user/group cache
+	elgg_set_config('users_cache', unserialize(elgg_load_system_cache('users_cache')));
+	elgg_set_config('groups_cache', unserialize(elgg_load_system_cache('groups_cache')));
 }
 
 /**
