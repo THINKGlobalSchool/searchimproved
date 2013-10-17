@@ -14,6 +14,7 @@ elgg_register_event_handler('init', 'system', 'searchimproved_init');
 
 // Init wall posts
 function searchimproved_init() {
+
 	// Register library
 	elgg_register_library('elgg:searchimproved', elgg_get_plugins_path() . 'searchimproved/lib/searchimproved.php');
 	//elgg_load_library('elgg:searchimproved');
@@ -47,8 +48,17 @@ function searchimproved_init() {
 	elgg_register_plugin_hook_handler('cron', 'hourly', 'searchimproved_generate_group_cache');
 
 	// Set config variable for user/group cache
-	elgg_set_config('users_cache', unserialize(elgg_load_system_cache('users_cache')));
-	elgg_set_config('groups_cache', unserialize(elgg_load_system_cache('groups_cache')));
+	$users_cache = unserialize(elgg_load_system_cache('users_cache'));
+	$groups_cache = unserialize(elgg_load_system_cache('groups_cache'));
+
+	// If caches are empty, regenerate 'em
+	if (!$users_cache || !$groups_cache) {
+		searchimproved_generate_user_cache();
+		searchimproved_generate_group_cache();
+	}
+
+	elgg_set_config('users_cache', $users_cache);
+	elgg_set_config('groups_cache', $groups_cache);
 }
 
 /**
@@ -256,9 +266,6 @@ function searchimproved_generate_user_cache() {
 		elgg_save_system_cache('users_cache', serialize($users_cache));
 	}
 
-	// Set config variable
-	elgg_set_config('users_cache', $users_cache);
-
 	elgg_set_ignore_access(FALSE);
 
 	return TRUE;
@@ -299,9 +306,6 @@ function searchimproved_generate_group_cache() {
 	if ($CONFIG->system_cache_enabled) {
 		elgg_save_system_cache('groups_cache', serialize($groups_cache));
 	}
-
-	// Set config variable
-	elgg_set_config('groups_cache', $groups_cache);
 
 	elgg_set_ignore_access(FALSE);
 
