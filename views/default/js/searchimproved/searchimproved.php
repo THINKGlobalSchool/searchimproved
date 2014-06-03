@@ -179,7 +179,7 @@ elgg.searchimproved.searchSource = function(req, resp) {
 
 	// Search on user prefetch data
 	var user_result = $.grep(elgg.searchimproved.prefetchData.users, function(el, idx) {
-		if (el.name.toLowerCase().indexOf(req.term) >= 0) {
+		if (el.name.toLowerCase().indexOf(req.term.toLowerCase()) >= 0) {
 			return true;
 		}
 		return false;
@@ -193,7 +193,7 @@ elgg.searchimproved.searchSource = function(req, resp) {
 
 	// Search on group prefetch data
 	var group_result = $.grep(elgg.searchimproved.prefetchData.groups, function(el, idx) {
-		if (el.name.toLowerCase().indexOf(req.term) >= 0) {
+		if (el.name.toLowerCase().indexOf(req.term.toLowerCase()) >= 0) {
 			return true;
 		}
 		return false;
