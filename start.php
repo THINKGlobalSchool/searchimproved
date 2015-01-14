@@ -51,11 +51,13 @@ function searchimproved_init() {
 	$users_cache = unserialize(elgg_load_system_cache('users_cache'));
 	$groups_cache = unserialize(elgg_load_system_cache('groups_cache'));
 
-	// If caches are empty, regenerate 'em
-	if (!$users_cache || !$groups_cache) {
-		searchimproved_generate_user_cache();
-		searchimproved_generate_group_cache();
-	}
+	// // If caches are empty, regenerate 'em
+	// if (!$users_cache || !$groups_cache) {
+	// 	searchimproved_generate_user_cache();
+	// 	searchimproved_generate_group_cache();
+	// }
+
+	elgg_register_plugin_hook_handler('cron', 'hourly', 'searchimproved_cache_cron_handler');
 
 	elgg_set_config('users_cache', $users_cache);
 	elgg_set_config('groups_cache', $groups_cache);
@@ -310,4 +312,13 @@ function searchimproved_generate_group_cache() {
 	elgg_set_ignore_access(FALSE);
 
 	return TRUE;
+}
+
+/**
+ * Generate the user/group cache via cron
+ */
+function searchimproved_cache_cron_handler($hook, $type, $value, $params) {
+	set_time_limit(0); // No timeout, just in case
+	searchimproved_generate_user_cache();
+	searchimproved_generate_group_cache();
 }
