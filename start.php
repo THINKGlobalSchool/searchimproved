@@ -5,8 +5,8 @@
  * @package SearchImproved
  * @license http://www.gnu.org/licenses/old-licenses/gpl-2.0.html GNU Public License version 2
  * @author Jeff Tilson
- * @copyright THINK Global School 2010 - 2013
- * @link http://www.thinkglobalschool.com/
+ * @copyright THINK Global School 2010 - 2015
+ * @link http://www.thinkglobalschool.org/
  *
  */
 
@@ -35,6 +35,10 @@ function searchimproved_init() {
 	// Extend topbar_ajax view (from tgstheme)
 	elgg_extend_view('page/elements/topbar_ajax', 'searchimproved/topbar');
 
+	// Remove regular search view(s)
+	elgg_unextend_view('page/elements/header', 'search/header');
+	elgg_unextend_view('page/elements/sidebar', 'search/header');
+
 	// Register custom search page handler
 	elgg_register_page_handler('searchimproved', 'searchimproved_page_handler');
 
@@ -42,7 +46,10 @@ function searchimproved_init() {
 	elgg_register_page_handler('searchprefetch', 'searchimproved_prefetch_handler');
 
 	// Entity menu hook for search results
-	elgg_register_plugin_hook_handler('register', 'menu:entity', 'searchimproved_entity_menu_handler', 999999);
+	elgg_register_plugin_hook_handler('register', 'menu:entity', 'searchimproved_entity_menu_handler', 9999);
+
+	// Topbar menu hook
+	elgg_register_plugin_hook_handler('register', 'menu:topbar', 'searchimproved_topbar_menu_handler', 9999);
 
 	// Set config variable for user/group cache
 	$users_cache = unserialize(elgg_load_system_cache('users_cache'));
@@ -171,6 +178,7 @@ function searchimproved_page_handler($page) {
 
 		$output = elgg_view_list_item($entity, array(
 			'use_hover' => false,
+			'full_view' => false,
 			'class' => 'elgg-autocomplete-item',
 		));
 
@@ -222,6 +230,25 @@ function searchimproved_entity_menu_handler($hook, $type, $value, $params) {
 }
 
 /**
+ * Hook to modify the topbar menu
+ */
+function searchimproved_topbar_menu_handler($hook, $type, $items, $params) {
+	// Add search item
+	$search_item = ElggMenuItem::factory(array(
+		'name' => 'search',
+		'href' => false,
+		'text' => elgg_view('search/search_box', array('class' => 'searchimproved-search-topbar')),
+		'priority' => 0,
+	));
+
+	$search_item->setSection('alt');
+
+	$items[] = $search_item;
+
+	return $items;
+}
+
+/**
  * Save system wide user cache
  */
 function searchimproved_generate_user_cache() {
@@ -249,7 +276,7 @@ function searchimproved_generate_user_cache() {
 			//'username' => $user->username,
 			'url' => $user->getURL(),
 			'category' => 'user',
-			'label' => elgg_view_list_item($user, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
+			'label' => elgg_view_list_item($user, array('full_view' => false, 'use_hover' => false,'class' => 'elgg-autocomplete-item'))
 		);
 	}
 	elgg_pop_context();
@@ -290,7 +317,7 @@ function searchimproved_generate_group_cache() {
 			'name' => $group->name,
 			'category' => 'group',
 			'url' => $group->getURL(),
-			'label' => elgg_view_list_item($group, array('use_hover' => false,'class' => 'elgg-autocomplete-item'))
+			'label' => elgg_view_list_item($group, array('full_view' => false, 'use_hover' => false,'class' => 'elgg-autocomplete-item'))
 		);
 	}
 	elgg_pop_context();

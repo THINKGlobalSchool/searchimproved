@@ -5,15 +5,14 @@
  * @package SearchImproved
  * @license http://www.gnu.org/licenses/old-licenses/gpl-2.0.html GNU Public License version 2
  * @author Jeff Tilson
- * @copyright THINK Global School 2010 - 2013
- * @link http://www.thinkglobalschool.com/
+ * @copyright THINK Global School 2010 - 2015
+ * @link http://www.thinkglobalschool.org/
  *
- * See:  http://cssarrowplease.com/  for awesome arrow/notches
  */
 ?>
 
 
-/*** SEARCH BOX/ARROW-NOTCH ***/ 
+/*** SEARCH BOX ***/ 
 .searchimproved-autocomplete {
 	width: 400px !important;
 	background: #ffffff;
@@ -22,35 +21,6 @@
 	box-shadow: 1px 1px 15px #333;
 	-moz-box-shadow: 1px 1px 15px #333;
 	-webkit-box-shadow: 1px 1px 15px #333;
-}
-
-.searchimproved-autocomplete {
-/*	display: block !important;*/
-}
-
-.searchimproved-autocomplete:after, .searchimproved-autocomplete:before {
-	bottom: 100%;
-	border: solid transparent;
-	content: " ";
-	height: 0;
-	width: 0;
-	position: absolute;
-	pointer-events: none;
-}
-
-.searchimproved-autocomplete:after {
-	border-color: rgba(255, 255, 255, 0);
-	border-bottom-color: #DDD;
-	border-width: 15px;
-	left: 50%;
-	margin-left: 51px;
-}
-.searchimproved-autocomplete:before {
-	border-color: rgba(153, 153, 153, 0);
-	border-bottom-color: #999;
-	border-width: 18px;
-	left: 50%;
-	margin-left: 48px;
 }
 
 /*** SEARCH RESULTS/ITEMS/CATEGORIES ***/
@@ -62,7 +32,7 @@
 
 .searchimproved-autocomplete .ui-menu-item  > a > .elgg-image-block {
 	margin: 0;
-	padding: 4px 0 6px;
+	padding: 4px 4px 6px;
 }
 
 .searchimproved-autocomplete .searchimproved-autocomplete-category {
@@ -91,6 +61,10 @@
 	background: #FFF url(<?php echo elgg_get_site_url(); ?>mod/searchimproved/graphics/search_loading.gif) no-repeat 98% center;
 }
 
+.ui-widget-content.elgg-ajax-loader {
+	background: #FFF url(<?php echo elgg_get_site_url(); ?>_graphics/ajax_loader_bw.gif) no-repeat center center;
+}
+
 /*** ACTIVE/HOVER STATES ***/
 .searchimproved-autocomplete #ui-active-menuitem {
 	text-decoration: none;
@@ -99,6 +73,7 @@
 }
 
 .searchimproved-autocomplete .ui-state-hover,
+.searchimproved-autocomplete .ui-state-focus,
 .searchimproved-autocomplete .ui-state-active {
 	border: 0;	
 	background: none;

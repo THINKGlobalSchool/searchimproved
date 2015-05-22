@@ -5,8 +5,8 @@
  * @package SearchImproved
  * @license http://www.gnu.org/licenses/old-licenses/gpl-2.0.html GNU Public License version 2
  * @author Jeff Tilson
- * @copyright THINK Global School 2010 - 2013
- * @link http://www.thinkglobalschool.com/
+ * @copyright THINK Global School 2010 - 2015
+ * @link http://www.thinkglobalschool.org/
  *
  * See: http://jqueryui.com/autocomplete/
  */
@@ -23,8 +23,10 @@ elgg.searchimproved.prefetchEndpoint = elgg.get_site_url() + 'searchprefetch';
 
 // Init
 elgg.searchimproved.init = function() {
-	//$('.search-input').live('mouseover', elgg.searchimproved.searchFocus);
+	elgg.searchimproved.searchFocus(null);
+	elgg.searchimproved.initSearchInput();
 }
+
 
 // Init the search input
 elgg.searchimproved.initSearchInput = function() {
@@ -49,10 +51,11 @@ elgg.searchimproved.initSearchInput = function() {
 		});
 
 		// Get widget instance
-		var si = elgg.searchimproved.searchInput.data('autocomplete');
+		var si = elgg.searchimproved.searchInput.data('uiAutocomplete');
 
 		// Override _renderMenu to display categories and custom CSS
 		si._renderMenu = function(ul, items) {
+
 			// Change class on item
 			ul.attr('class', 'searchimproved-autocomplete');
 
@@ -62,14 +65,14 @@ elgg.searchimproved.initSearchInput = function() {
 				if (item.category != currentCategory) {
 
 					if (item.category == 'empty') {
-						ul.append("<li class='searchimproved-autocomplete-empty-category'></li>");
+						ul.append($("<li class='searchimproved-autocomplete-empty-category'></li>").data("item.autocomplete", {}));
 					} else {
-						ul.append("<li class='searchimproved-autocomplete-category'>" + item.category + "</li>");
+						ul.append($("<li class='searchimproved-autocomplete-category'>" + item.category + "</li>").data("item.autocomplete", {}));
 					}
 					currentCategory = item.category;
 				}
 
-				that._renderItem(ul, item);
+				that._renderItemData(ul, item);
 			});
 
 			// Remove additional items
@@ -78,7 +81,7 @@ elgg.searchimproved.initSearchInput = function() {
 			var more_item = elgg.searchimproved.getEmptyItem($('.search-input').val());
 
 			// Render additional item
-			this._renderItem(ul, more_item);
+			this._renderItemData(ul, more_item);
 
 		};
 
@@ -117,7 +120,6 @@ elgg.searchimproved.initSearchInput = function() {
 
 						// Add items and refresh menu
 						that._renderMenu( ul, data);
-						that.menu.deactivate();
 						that.menu.refresh();
 						that._resizeMenu();
 						ul.position( $.extend({
@@ -129,8 +131,6 @@ elgg.searchimproved.initSearchInput = function() {
 				});
 			}
 
-			// TODO refresh should check if the active item is still in the dom, removing the need for a manual deactivate
-			this.menu.deactivate();
 			this.menu.refresh();
 
 			// size and position menu
@@ -252,5 +252,5 @@ elgg.searchimproved.getEmptyItem = function(term) {
 	return more_item;
 }
 
-//elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
-elgg.register_hook_handler('loaded', 'topbar_ajax', elgg.searchimproved.searchFocus, 1000);
+elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
+//elgg.register_hook_handler('loaded', 'topbar_ajax', elgg.searchimproved.searchFocus, 1000);
