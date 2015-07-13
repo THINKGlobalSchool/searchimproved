@@ -30,7 +30,7 @@ elgg.searchimproved.init = function() {
 
 // Init the search input
 elgg.searchimproved.initSearchInput = function() {
-	console.log('blah');
+
 	// Init search
 	if (!elgg.searchimproved.searchInput && $('.search-input').length > 0) {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
