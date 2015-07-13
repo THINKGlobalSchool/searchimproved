@@ -30,6 +30,7 @@ elgg.searchimproved.init = function() {
 
 // Init the search input
 elgg.searchimproved.initSearchInput = function() {
+	console.log('blah');
 	// Init search
 	if (!elgg.searchimproved.searchInput && $('.search-input').length > 0) {
 		elgg.searchimproved.searchInput = $('.search-input').autocomplete({
@@ -252,5 +253,5 @@ elgg.searchimproved.getEmptyItem = function(term) {
 	return more_item;
 }
 
-elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
-//elgg.register_hook_handler('loaded', 'topbar_ajax', elgg.searchimproved.searchFocus, 1000);
+//elgg.register_hook_handler('init', 'system', elgg.searchimproved.init);
+elgg.register_hook_handler('loaded', 'topbar_ajax', elgg.searchimproved.searchFocus, 1000);
